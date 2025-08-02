@@ -1,12 +1,9 @@
 package com.example.contactosmvvm_df.adapter
 
-import android.R
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
-import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.example.contactosmvvm_df.databinding.ItemContactoGrupoBinding
 import com.example.contactosmvvm_df.model.Contacto
 
 class ContactosGrupoAdapter(
@@ -15,34 +12,29 @@ class ContactosGrupoAdapter(
     private val onRemoverContacto: (Contacto) -> Unit = {}
 ) : RecyclerView.Adapter<ContactosGrupoAdapter.ContactoGrupoViewHolder>() {
 
-    inner class ContactoGrupoViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-
-        private val tvNombre: TextView = itemView.findViewById(R.id.tvNombre)
-        private val tvTelefono: TextView = itemView.findViewById(R.id.tvTelefono)
-        private val tvEmail: TextView = itemView.findViewById(R.id.tvEmail)
-        private val btnRemover: Button = itemView.findViewById(R.id.btnRemover)
+    inner class ContactoGrupoViewHolder(private val binding: ItemContactoGrupoBinding) :
+        RecyclerView.ViewHolder(binding.root) {
 
         fun bind(contacto: Contacto) {
-            tvNombre.text = contacto.nombre
-            tvTelefono.text = contacto.telefono
-            tvEmail.text = contacto.email
+            binding.apply {
+                tvNombre.text = contacto.nombre
+                tvTelefono.text = contacto.telefono
+                tvEmail.text = contacto.email ?: "Sin email"
 
-            // Click en toda la tarjeta
-            itemView.setOnClickListener {
-                onContactoClick(contacto)
-            }
-
-            // Botón para remover del grupo
-            btnRemover.setOnClickListener {
-                onRemoverContacto(contacto)
+                // Manejar clics
+                root.setOnClickListener { onContactoClick(contacto) }
+                btnRemover.setOnClickListener { onRemoverContacto(contacto) }
             }
         }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ContactoGrupoViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_contacto_grupo, parent, false)
-        return ContactoGrupoViewHolder(view)
+        val binding = ItemContactoGrupoBinding.inflate(
+            LayoutInflater.from(parent.context),
+            parent,
+            false
+        )
+        return ContactoGrupoViewHolder(binding)
     }
 
     override fun onBindViewHolder(holder: ContactoGrupoViewHolder, position: Int) {
@@ -51,24 +43,23 @@ class ContactosGrupoAdapter(
 
     override fun getItemCount(): Int = contactos.size
 
+    // Métodos para actualizar la lista
     fun actualizarContactos(nuevosContactos: List<Contacto>) {
         contactos = nuevosContactos
         notifyDataSetChanged()
     }
 
     fun removerContacto(contacto: Contacto) {
-        val posicion = contactos.indexOf(contacto)
+        val posicion = contactos.indexOfFirst { it.id == contacto.id }
         if (posicion != -1) {
-            val nuevaLista = contactos.toMutableList()
-            nuevaLista.removeAt(posicion)
+            val nuevaLista = contactos.toMutableList().apply { removeAt(posicion) }
             contactos = nuevaLista
             notifyItemRemoved(posicion)
         }
     }
 
     fun agregarContacto(contacto: Contacto) {
-        val nuevaLista = contactos.toMutableList()
-        nuevaLista.add(contacto)
+        val nuevaLista = contactos.toMutableList().apply { add(contacto) }
         contactos = nuevaLista
         notifyItemInserted(contactos.size - 1)
     }

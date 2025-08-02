@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.contactosmvvm_df.adapter.ContactosSeleccionAdapter
+import com.example.contactosmvvm_df.databinding.ActivityAsignarContactosBinding
 import com.example.contactosmvvm_df.viewmodel.ContactosViewModel
 
 class AsignarContactosGrupoActivity : AppCompatActivity() {

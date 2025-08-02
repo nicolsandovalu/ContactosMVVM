@@ -11,6 +11,7 @@ import com.example.contactosmvvm_df.model.ContactoGrupoCrossRef
 import com.example.contactosmvvm_df.model.Grupo
 import com.example.contactosmvvm_df.model.GrupoConContactos
 
+
 class ContactosRepository(
     private val contactoDao: ContactoDao,
     private val categoriaDao: CategoriaDao,
@@ -22,7 +23,9 @@ class ContactosRepository(
     val grupos = grupoDao.obtenerGrupos()
 
     // --- CRUD Contactos ---
-    suspend fun insertarContacto(contacto: Contacto) = contactoDao.insertar(contacto)
+    suspend fun insertarContacto(contacto: Contacto): Long {
+        return contactoDao.insertar(contacto)
+    }
     suspend fun actualizarContacto(contacto: Contacto) = contactoDao.actualizar(contacto)
     suspend fun eliminarContacto(contacto: Contacto) = contactoDao.eliminar(contacto)
 
@@ -54,13 +57,28 @@ class ContactosRepository(
     fun obtenerTodosLosGruposConContactos(): LiveData<List<GrupoConContactos>> =
         grupoDao.obtenerTodosLosGruposConContactos()
 
-    // --- Consultas adicionales ---
     suspend fun contarContactosEnGrupo(grupoId: Int): Int =
         grupoDao.contarContactosEnGrupo(grupoId)
 
-    fun obtenerContactosDeGrupo(grupoId: Int): LiveData<List<Contacto>> =
-        grupoDao.obtenerContactosDeGrupo(grupoId)
+    // --- Funciones para AgregarContactoViewModel ---
+    // Se corrige para que devuelva LiveData<Contacto> en lugar de LiveData<List<Contacto>>
+    fun getContactoById(contactoId: Int): LiveData<Contacto> {
+        return contactoDao.obtenerContactoPorId(contactoId)
+    }
 
-    fun obtenerGruposDeContacto(contactoId: Int): LiveData<List<Grupo>> =
-        grupoDao.obtenerGruposDeContacto(contactoId)
+    suspend fun actualizarGruposDeContacto(contactoId: Int, grupoIds: List<Int>) {
+        // Elimina las relaciones existentes
+        val referenciasAEliminar = grupoDao.obtenerGruposDeContacto(contactoId).value?.map {
+            ContactoGrupoCrossRef(contactoId, it.id)
+        }
+        referenciasAEliminar?.forEach {
+            grupoDao.eliminarContactoGrupoCrossRef(it)
+        }
+
+        // Crea e inserta nuevas relaciones
+        grupoIds.forEach { grupoId ->
+            val nuevaReferencia = ContactoGrupoCrossRef(contactoId, grupoId)
+            grupoDao.insertarContactoGrupoCrossRef(nuevaReferencia)
+        }
+    }
 }

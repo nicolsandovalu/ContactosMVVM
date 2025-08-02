@@ -8,6 +8,7 @@ import androidx.room.Query
 import androidx.room.Update
 import com.example.contactosmvvm_df.model.Contacto
 
+
 @Dao
 interface ContactoDao {
     @Query("SELECT * FROM contactos ORDER BY nombre ASC")
@@ -17,11 +18,14 @@ interface ContactoDao {
     fun buscarContactos(query: String): LiveData<List<Contacto>>
 
     @Insert
-    suspend fun insertar(contacto: Contacto)
+    suspend fun insertar(contacto: Contacto): Long
 
     @Update
     suspend fun actualizar(contacto: Contacto)
 
     @Delete
     suspend fun eliminar(contacto: Contacto)
+
+    @Query("SELECT * FROM contactos WHERE id = :contactoId")
+    fun obtenerContactoPorId(contactoId: Int): LiveData<Contacto>
 }

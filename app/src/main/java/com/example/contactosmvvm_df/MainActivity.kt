@@ -12,6 +12,10 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.contactosmvvm_df.adapter.ContactosAdapter
+import com.example.contactosmvvm_df.databinding.ActivityMainBinding
+import com.example.contactosmvvm_df.model.Contacto
+import com.example.contactosmvvm_df.viewmodel.ContactosViewModel
 
 class MainActivity : AppCompatActivity() {
 
@@ -130,7 +134,7 @@ class MainActivity : AppCompatActivity() {
             .setTitle("Eliminar Contacto")
             .setMessage("¿Estás seguro de que quieres eliminar a ${contacto.nombre}?")
             .setPositiveButton("Eliminar") { _, _ ->
-                viewModel.eliminar(contacto)
+                viewModel.eliminarContacto(contacto)
                 Toast.makeText(this, "${contacto.nombre} eliminado", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Cancelar", null)

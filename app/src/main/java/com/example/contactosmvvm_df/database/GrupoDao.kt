@@ -37,6 +37,9 @@ interface GrupoDao {
     @Delete
     suspend fun eliminarContactoGrupoCrossRef(ref: ContactoGrupoCrossRef)
 
+    @Query("DELETE FROM ContactoGrupoCrossRef WHERE contactoId = :contactoId")
+    suspend fun eliminarTodasLasReferenciasDeContacto(contactoId: Int)
+
     // Obtener grupo con sus contactos
     @Transaction
     @Query("SELECT * FROM grupos WHERE id = :grupoId")

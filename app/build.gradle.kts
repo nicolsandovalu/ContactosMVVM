@@ -1,8 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("com.google.devtools.ksp")
 }
-
 android {
     namespace = "com.example.contactosmvvm_df"
     compileSdk = 36
@@ -15,6 +15,12 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+
+    }
+
+    buildFeatures {
+        viewBinding = true
     }
 
     buildTypes {
@@ -35,6 +41,8 @@ android {
     }
 }
 
+
+
 dependencies {
 
     implementation(libs.androidx.core.ktx)
@@ -46,17 +54,21 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    // CoordinatorLayout para el layout principal
+    // CoordinatorLayout
     implementation("androidx.coordinatorlayout:coordinatorlayout:1.2.0")
 
-    // Room
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
+    // Room components
+    implementation("androidx.room:room-runtime:2.7.2")
+    // Para usar 'suspend' en los DAOs (Coroutines)
+    implementation("androidx.room:room-ktx:2.7.2")
+    // Procesador de anotaciones de Room (usando ksp)
+    ksp("androidx.room:room-compiler:2.7.2")
 
-
-    // ViewModel & LiveData
+    // Lifecycle components (versiones consistentes)
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-common:2.7.0")  // Para Transformations
 
     // RecyclerView
     implementation("androidx.recyclerview:recyclerview:1.3.2")
@@ -66,4 +78,12 @@ dependencies {
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+    // Hilt
+    implementation("com.google.dagger:hilt-android:2.48")
+
+
+
 }
+
+

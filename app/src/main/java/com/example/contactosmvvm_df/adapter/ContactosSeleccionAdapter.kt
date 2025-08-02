@@ -1,74 +1,73 @@
 package com.example.contactosmvvm_df.adapter
 
 import android.view.LayoutInflater
+import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import com.example.contactosmvvm_df.databinding.ItemCheckboxContactoBinding
 import com.example.contactosmvvm_df.model.Contacto
-import kotlin.coroutines.Continuation
 
-data class ContactosSeleccionAdapter(
+
+data class ContactosSeleccionEstado(
 
     val contacto: Contacto,
     var isSelected: Boolean = false,
     var estaEnGrupo: Boolean = false
+
 )
 
 class ContactosSeleccionAdapter(
 
     private val onSelectionChanged: (Contacto, Boolean) -> Unit
-) :  RecyclerView.Adapter<ContactosSeleccionAdapter.ContactoSeleccionViewHolder> () {
+) : RecyclerView.Adapter<ContactosSeleccionAdapter.ContactoSeleccionViewHolder> () {
 
-    private var estadosSeleccion: MutableList<ContactosSeleccionAdapter> = mutableListOf()
-
+    private var estadosSeleccion: MutableList<ContactosSeleccionEstado> = mutableListOf()
 
     inner class ContactoSeleccionViewHolder(
-
         private val binding: ItemCheckboxContactoBinding
+
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(estadoSeleccion: ContactoSeleccionState) {
-            val contacto = estadoSeleccion.contacto
+        fun bind(estado: ContactosSeleccionEstado) {
+            with(binding) {
+                // Configurar datos del contacto
+                tvNombre.text = estado.contacto.nombre
+                tvTelefono.text = estado.contacto.telefono
+                tvEmail.text = estado.contacto.email ?: ""
 
-            binding.apply {
-                tvNombre.text = contacto.nombre
-                tvTelefono.text = contacto.telefono
-                tvEmail.text = contacto.email
+                // Configurar estado del checkbox
+                checkbox.isChecked = estado.isSelected || estado.estaEnGrupo
+                checkbox.isEnabled = !estado.estaEnGrupo
 
-                // Configurar checkbox
-                checkbox.isChecked = estadoSeleccion.estaEnGrupo || estadoSeleccion.isSelected
-
-                // Deshabilitar si ya está en el grupo
-                checkbox.isEnable = !estadoSeleccion.estaEnGrupo
-
-                // Cambiar texto si ya está en grupo
-                if (estadoSeleccion.estaEnGrupo) {
-                    tvNombre.text = "${contacto.nombre} (Ya en grupo)"
+                // Estilo para contactos ya en grupo
+                if (estado.estaEnGrupo) {
+                    tvNombre.text = "${estado.contacto.nombre} (Ya en grupo)"
                     root.alpha = 0.7f
                 } else {
+                    tvNombre.text = estado.contacto.nombre
                     root.alpha = 1.0f
                 }
 
-                //listener para cambios en checkbox
-                checkbox.setOnCheckedChangeListener(null) //remover listener anterior
-                checkbox.setOnCheckedChangeListener {_, isChecked ->
-                    if(!estadoSeleccion.estaEnGrupo) {
-                        estadoSeleccion.isSelected = isChecked
-                        onSelectionChanged(contacto, isChecked)
+                // Listeners
+                checkbox.setOnCheckedChangeListener { _, isChecked ->
+                    if (!estado.estaEnGrupo) {
+                        estado.isSelected = isChecked
+                        onSelectionChanged(estado.contacto, isChecked)
                     }
                 }
 
-                //click en toda la fila
                 root.setOnClickListener {
-                    if (!estadoSeleccion.estaEnGrupo) {
-                        checkbox.isChecked = !checkbox.isChecked
+                    if (!estado.estaEnGrupo) {
+                        val newState = !checkbox.isChecked
+                        checkbox.isChecked = newState
+                        estado.isSelected = newState
+                        onSelectionChanged(estado.contacto, newState)
                     }
                 }
             }
         }
     }
 
-
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ContactoSeleccionViewHolder {
-
         val binding = ItemCheckboxContactoBinding.inflate(
             LayoutInflater.from(parent.context),
             parent,
@@ -78,15 +77,20 @@ class ContactosSeleccionAdapter(
     }
 
     override fun onBindViewHolder(holder: ContactoSeleccionViewHolder, position: Int) {
-
-        holder.bind(estadosSeleccion[position] )
+        holder.bind(estadosSeleccion[position])
     }
 
     override fun getItemCount(): Int = estadosSeleccion.size
 
+    // Métodos públicos
     fun actualizarLista(contactos: List<Contacto>) {
+        val nuevosEstados = contactos.map { contacto ->
+            estadosSeleccion.find { it.contacto.id == contacto.id }?.let {
+                it.copy(contacto = contacto)
+            } ?: ContactosSeleccionEstado(contacto)
+        }
         estadosSeleccion.clear()
-        estadosSeleccion.addAll(contactos.map { ContactoSeleccionState(it) })
+        estadosSeleccion.addAll(nuevosEstados)
         notifyDataSetChanged()
     }
 
@@ -97,23 +101,17 @@ class ContactosSeleccionAdapter(
         notifyDataSetChanged()
     }
 
-    fun obtenerContactosSeleccionados(): List<Contacto> {
-        return estadosSeleccion
-            .filter { it.isSelected && !it.estaEnGrupo }
-            .map { it.contacto }
-    }
+    fun obtenerContactosSeleccionados(): List<Contacto> = estadosSeleccion
+        .filter { it.isSelected && !it.estaEnGrupo }
+        .map { it.contacto }
 
-    fun obtenerContactosDeseleccionados(): List<Contacto> {
-        return estadosSeleccion
-            .filter { !it.isSelected && it.estaEnGrupo }
-            .map { it.contacto }
-    }
+    fun obtenerContactosDeseleccionados(): List<Contacto> = estadosSeleccion
+        .filter { !it.isSelected && it.estaEnGrupo }
+        .map { it.contacto }
 
-    fun obtenerTodosLosSeleccionados(): List<Contacto> {
-        return estadosSeleccion
-            .filter { it.isSelected || it.estaEnGrupo }
-            .map { it.contacto }
-    }
+    fun obtenerTodosLosSeleccionados(): List<Contacto> = estadosSeleccion
+        .filter { it.isSelected || it.estaEnGrupo }
+        .map { it.contacto }
 
     fun limpiarSelecciones() {
         estadosSeleccion.forEach { it.isSelected = false }
@@ -121,12 +119,7 @@ class ContactosSeleccionAdapter(
     }
 
     fun seleccionarTodos() {
-        estadosSeleccion.forEach {
-            if (!it.estaEnGrupo) {
-                it.isSelected = true
-            }
-        }
+        estadosSeleccion.forEach { if (!it.estaEnGrupo) it.isSelected = true }
         notifyDataSetChanged()
     }
-
 }
