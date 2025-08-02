@@ -1,0 +1,54 @@
+<resources>
+    <string name="app_name">Contactos</string>
+
+    <!-- MainActivity -->
+    <string name="no_contactos">No tienes contactos</string>
+    <string name="agregar_primer_contacto">Presiona el botón + para agregar tu primer contacto</string>
+    <string name="mis_contactos">Mis Contactos</string>
+
+    <!-- Menu opciones -->
+    <string name="buscar">Buscar</string>
+    <string name="gestionar_grupos">Gestionar Grupos</string>
+    <string name="exportar_contactos">Exportar Contactos</string>
+    <string name="importar_contactos">Importar Contactos</string>
+
+    <!-- Agregar/Editar Contacto -->
+    <string name="agregar_contacto">Agregar Contacto</string>
+    <string name="editar_contacto">Editar Contacto</string>
+    <string name="nombre_completo">Nombre completo</string>
+    <string name="telefono">Teléfono</string>
+    <string name="email">Email</string>
+    <string name="guardar">Guardar</string>
+    <string name="actualizar">Actualizar</string>
+    <string name="cancelar">Cancelar</string>
+
+    <!-- Validaciones -->
+    <string name="nombre_requerido">El nombre es requerido</string>
+    <string name="telefono_invalido">Formato de teléfono inválido</string>
+    <string name="email_invalido">Formato de email inválido</string>
+
+    <!-- Opciones contacto -->
+    <string name="ver_detalles">Ver detalles</string>
+    <string name="editar">Editar</string>
+    <string name="eliminar">Eliminar</string>
+    <string name="compartir">Compartir</string>
+    <string name="detalles_contacto">Detalles del Contacto</string>
+    <string name="eliminar_contacto">Eliminar Contacto</string>
+    <string name="confirmar_eliminar">¿Estás seguro de que quieres eliminar este contacto?</string>
+    <string name="contacto_eliminado">Contacto eliminado</string>
+    <string name="compartir_contacto">Compartir contacto</string>
+
+    <!-- Grupos -->
+    <string name="asignar_contactos">Asignar contactos al grupo</string>
+    <string name="seleccionar_contactos">Selecciona los contactos que quieres agregar al grupo:</string>
+    <string name="ya_en_grupo">(Ya en grupo)</string>
+    <string name="cambios_guardados">Cambios guardados</string>
+    <string name="no_cambios">No hay cambios para guardar</string>
+
+    <!-- Mensajes generales -->
+    <string name="error">Error</string>
+    <string name="ok">OK</string>
+    <string name="aceptar">Aceptar</string>
+    <string name="por_implementar">Funcionalidad por implementar</string>
+
+</resources>

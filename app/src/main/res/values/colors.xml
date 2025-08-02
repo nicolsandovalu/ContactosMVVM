@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- Colores Material Design -->
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+
+    <!-- Colores para modo claro -->
+    <color name="color_primary">#FF6200EE</color>
+    <color name="color_primary_variant">#FF3700B3</color>
+    <color name="color_secondary">#FF03DAC6</color>
+    <color name="color_secondary_variant">#FF018786</color>
+
+    <!-- Colores de superficie -->
+    <color name="color_surface_light">#FFFFFFFF</color>
+    <color name="color_surface_dark">#FF121212</color>
+    <color name="color_on_surface_light">#FF000000</color>
+    <color name="color_on_surface_dark">#FFFFFFFF</color>
+
+    <!-- Color de error estándar -->
+    <color name="design_default_color_error">#FFB00020</color>
+</resources>
