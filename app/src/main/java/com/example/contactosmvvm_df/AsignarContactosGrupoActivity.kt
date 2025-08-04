@@ -10,7 +10,6 @@ import com.example.contactosmvvm_df.databinding.ActivityAsignarContactosBinding
 import com.example.contactosmvvm_df.viewmodel.ContactosViewModel
 
 class AsignarContactosGrupoActivity : AppCompatActivity() {
-
     private lateinit var binding: ActivityAsignarContactosBinding
     private lateinit var viewModel: ContactosViewModel
     private lateinit var adapter: ContactosSeleccionAdapter
@@ -27,7 +26,6 @@ class AsignarContactosGrupoActivity : AppCompatActivity() {
             mostrarErrorYCerrar()
             return
         }
-
         configurarViewModel()
         configurarInterfaz()
         configurarRecyclerView()
@@ -50,15 +48,12 @@ class AsignarContactosGrupoActivity : AppCompatActivity() {
 
     private fun configurarInterfaz() {
         binding.tvTitulo.text = "Asignar contactos a: $grupoNombre"
-
         binding.btnGuardar.setOnClickListener {
             procesarGuardado()
         }
-
         binding.btnCancelar.setOnClickListener {
             finish()
         }
-
         supportActionBar?.apply {
             title = "Asignar Contactos"
             setDisplayHomeAsUpEnabled(true)
@@ -68,9 +63,7 @@ class AsignarContactosGrupoActivity : AppCompatActivity() {
     private fun configurarRecyclerView() {
         adapter = ContactosSeleccionAdapter { contacto, seleccionado ->
             // Por ahora no hacemos nada especial aquí
-            // El adapter maneja el estado internamente
         }
-
         binding.recyclerViewContactos.apply {
             layoutManager = LinearLayoutManager(this@AsignarContactosGrupoActivity)
             adapter = this@AsignarContactosGrupoActivity.adapter
@@ -78,14 +71,11 @@ class AsignarContactosGrupoActivity : AppCompatActivity() {
     }
 
     private fun observarDatos() {
-        // Observar lista de contactos
         viewModel.contactos.observe(this) { listaContactos ->
             listaContactos?.let {
                 adapter.actualizarLista(it)
             }
         }
-
-        // Observar contactos que ya están en el grupo
         viewModel.obtenerContactosDeGrupo(grupoId).observe(this) { grupoConContactos ->
             grupoConContactos?.let { grupo ->
                 val idsEnGrupo = grupo.contactos.map { it.id }.toSet()
@@ -98,27 +88,19 @@ class AsignarContactosGrupoActivity : AppCompatActivity() {
         try {
             val nuevosContactos = adapter.obtenerContactosSeleccionados()
             val contactosARemover = adapter.obtenerContactosDeseleccionados()
-
-            // Agregar nuevos contactos al grupo
             nuevosContactos.forEach { contacto ->
                 viewModel.asociarContactoAGrupo(contacto.id, grupoId)
             }
-
-            // Remover contactos del grupo
             contactosARemover.forEach { contacto ->
                 viewModel.removerContactoDeGrupo(contacto.id, grupoId)
             }
-
-            // Mostrar mensaje de confirmación
             val totalCambios = nuevosContactos.size + contactosARemover.size
             val mensaje = when {
                 totalCambios == 0 -> "No hay cambios para guardar"
                 else -> "Guardado: ${nuevosContactos.size} agregados, ${contactosARemover.size} removidos"
             }
-
             Toast.makeText(this, mensaje, Toast.LENGTH_SHORT).show()
             finish()
-
         } catch (e: Exception) {
             Toast.makeText(this, "Error al guardar: ${e.message}", Toast.LENGTH_LONG).show()
         }

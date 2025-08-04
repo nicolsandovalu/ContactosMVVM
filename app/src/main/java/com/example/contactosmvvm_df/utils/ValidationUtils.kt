@@ -1,9 +1,17 @@
 package com.example.contactosmvvm_df.utils
 
+import android.util.Patterns
+
 object ValidationUtils {
-    fun validarFormulario(nombre: String, telefono: String, email: String): Boolean {
-        return nombre.isNotBlank() &&
-                telefono.matches(Regex("^\\+?[0-9]{7,15}$")) &&
-                email.matches(Regex("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$"))
+    fun isNombreValido(nombre: String): Boolean {
+        return nombre.isNotBlank()
+    }
+
+    fun isTelefonoValido(telefono: String): Boolean {
+        return telefono.isNotBlank()
+    }
+
+    fun isEmailValido(email: String): Boolean {
+        return email.isBlank() || Patterns.EMAIL_ADDRESS.matcher(email).matches()
     }
 }

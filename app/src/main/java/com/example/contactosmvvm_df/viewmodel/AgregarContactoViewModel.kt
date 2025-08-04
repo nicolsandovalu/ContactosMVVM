@@ -12,23 +12,17 @@ import com.example.contactosmvvm_df.model.Grupo
 import com.example.contactosmvvm_df.repository.ContactosRepository
 import kotlinx.coroutines.launch
 
-
-
 // ViewModel para la pantalla de agregar o editar un contacto.
-
 class AgregarContactoViewModel(private val repository: ContactosRepository) : ViewModel() {
 
-    val todosLosGrupos: LiveData<List<Grupo>> = repository.grupos
-
-    val todasLasCategorias: LiveData<List<Categoria>> = repository.categorias
-
+    val todosLosGrupos: LiveData<List<Grupo>> = repository.todosLosGrupos
+    val todasLasCategorias: LiveData<List<Categoria>> = repository.todasLasCategorias
     var gruposDelContacto: LiveData<ContactoConGrupos> = MutableLiveData()
 
     private val _estadoGuardado = MutableLiveData<Result<Unit>>()
-
     val estadoGuardado: LiveData<Result<Unit>> = _estadoGuardado
 
-    suspend fun insertarContactoYObtenerId(contacto: Contacto): Long {
+    suspend fun insertarContacto(contacto: Contacto): Long {
         return repository.insertarContacto(contacto)
     }
 
@@ -46,40 +40,31 @@ class AgregarContactoViewModel(private val repository: ContactosRepository) : Vi
         return repository.getContactoById(contactoId)
     }
 
-    /** La función de guardado ahora necesita el ID del contacto guardado
-     *y la lista de grupos a los que asociarlo.*/
     fun guardarContactoYAsociarGrupos(contacto: Contacto, grupoIds: List<Int>) = viewModelScope.launch {
         try {
-            // Si el contacto es nuevo, insertamos y obtenemos su ID
             if (contacto.id == 0) {
-                // Se usa la nueva función para obtener el ID
-                val nuevoId = insertarContactoYObtenerId(contacto)
-                // Se corrige el nombre de la función y se pasan los argumentos correctos
+                val nuevoId = insertarContacto(contacto)
                 repository.actualizarGruposDeContacto(nuevoId.toInt(), grupoIds)
                 _estadoGuardado.postValue(Result.success(Unit))
-            } else { // Si el contacto ya existe, actualizamos
+            } else {
                 repository.actualizarContacto(contacto)
-                // Se corrige el nombre de la función y se pasan los argumentos correctos
                 repository.actualizarGruposDeContacto(contacto.id, grupoIds)
                 _estadoGuardado.postValue(Result.success(Unit))
             }
-        }catch(e: Exception) {
+        } catch (e: Exception) {
             _estadoGuardado.postValue(Result.failure(e))
         }
     }
 
+    // Método faltante para crear un nuevo grupo
     fun crearNuevoGrupo(nombreGrupo: String) = viewModelScope.launch {
         if (nombreGrupo.isNotBlank()) {
             val nuevoGrupo = Grupo(nombre = nombreGrupo)
-            // Se corrige el nombre de la función del repositorio
-            repository.insertarGrupo(nuevoGrupo)
+            repository.crearGrupo(nuevoGrupo)
         }
     }
 }
 
-/**
- * Fábrica para crear una instancia de AgregarContactoViewModel con dependencias.
- */
 class AgregarContactoViewModelFactory(private val repository: ContactosRepository) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(AgregarContactoViewModel::class.java)) {

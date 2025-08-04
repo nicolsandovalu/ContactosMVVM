@@ -1,5 +1,4 @@
 package com.example.contactosmvvm_df.database
-
 import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
@@ -19,8 +18,8 @@ import kotlinx.coroutines.launch
         Grupo::class,
         ContactoGrupoCrossRef::class
     ],
-    version = 1,  // Incrementa este número cuando hagas cambios en el esquema
-    exportSchema = false  // Cambia a true y provee un directorio si quieres guardar el esquema
+    version = 2, // Se incrementa la versión de la base de datos [cite: anbs12/deflatam_contactapp/DefLatam_ContactApp-5b5d6d9c8ae4026dc08fe88f4eb93affa0640ef2/app/src/main/java/com/example/deflatam_contactapp/database/ContactosDatabase.kt]
+    exportSchema = false
 )
 abstract class ContactosDatabase : RoomDatabase() {
     abstract fun contactoDao(): ContactoDao
@@ -30,7 +29,6 @@ abstract class ContactosDatabase : RoomDatabase() {
     private class ContactosDatabaseCallback(
         private val scope: CoroutineScope
     ) : RoomDatabase.Callback() {
-
         override fun onCreate(db: SupportSQLiteDatabase) {
             super.onCreate(db)
             INSTANCE?.let { database ->
@@ -59,9 +57,6 @@ abstract class ContactosDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: ContactosDatabase? = null
 
-        /**
-         * Obtiene la instancia única de la base de datos (Singleton).
-         */
         fun getDatabase(context: Context, coroutineScope: CoroutineScope): ContactosDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -69,6 +64,7 @@ abstract class ContactosDatabase : RoomDatabase() {
                     ContactosDatabase::class.java,
                     "contactos_database"
                 )
+                    .fallbackToDestructiveMigration() // Agregue esta línea [cite: anbs12/deflatam_contactapp/DefLatam_ContactApp-5b5d6d9c8ae4026dc08fe88f4eb93affa0640ef2/app/src/main/java/com/example/deflatam_contactapp/database/ContactosDatabase.kt]
                     .addCallback(ContactosDatabaseCallback(coroutineScope))
                     .build()
                 INSTANCE = instance
