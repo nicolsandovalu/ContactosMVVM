@@ -68,7 +68,5 @@
             android:layout_weight="1"
             android:layout_marginStart="8dp"
             android:text="Guardar" />
-
     </LinearLayout>
-
 </androidx.constraintlayout.widget.ConstraintLayout>

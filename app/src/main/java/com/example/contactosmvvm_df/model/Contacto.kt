@@ -1,5 +1,6 @@
 package com.example.contactosmvvm_df.model
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
@@ -9,14 +10,17 @@ import androidx.room.PrimaryKey
     foreignKeys = [ForeignKey(
         entity = Categoria::class,
         parentColumns = ["id"],
-        childColumns = ["categoriaId"],
-        onDelete = ForeignKey.CASCADE
+        childColumns = ["categoria_id"],
+        onDelete = ForeignKey.SET_NULL
     )]
 )
 data class Contacto(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
     val nombre: String,
     val telefono: String,
-    val email: String,
-    val categoriaId: Int
+    val email: String?,
+
+    @ColumnInfo(name = "categoria_id", index = true)
+    val categoriaId: Int?
 )

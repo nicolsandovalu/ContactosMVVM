@@ -18,34 +18,20 @@ import kotlinx.coroutines.launch
 
 class AgregarContactoViewModel(private val repository: ContactosRepository) : ViewModel() {
 
-    // Se corrige la referencia a la propiedad 'grupos' del repositorio
     val todosLosGrupos: LiveData<List<Grupo>> = repository.grupos
 
-    // Se corrige la referencia a la propiedad 'categorias' del repositorio
     val todasLasCategorias: LiveData<List<Categoria>> = repository.categorias
 
     var gruposDelContacto: LiveData<ContactoConGrupos> = MutableLiveData()
 
-    /**
-     * LiveData para observar el resultado de la operación de guardado.
-     */
     private val _estadoGuardado = MutableLiveData<Result<Unit>>()
 
-    /**
-     * LiveData para observar el resultado de la operación de guardado.
-     */
     val estadoGuardado: LiveData<Result<Unit>> = _estadoGuardado
 
-    /**
-     * Inserta un nuevo contacto en la base de datos y devuelve el ID.
-     */
     suspend fun insertarContactoYObtenerId(contacto: Contacto): Long {
         return repository.insertarContacto(contacto)
     }
 
-    /**
-     * Actualiza un contacto existente en la base de datos.
-     */
     fun actualizarContacto(contacto: Contacto) = viewModelScope.launch {
         try {
             repository.actualizarContacto(contacto)
@@ -55,9 +41,6 @@ class AgregarContactoViewModel(private val repository: ContactosRepository) : Vi
         }
     }
 
-    /**
-     * Obtiene un contacto por su ID. Y actualiza los grupos a los que pertenece el contacto.
-     */
     fun getContactoById(contactoId: Int): LiveData<Contacto> {
         gruposDelContacto = repository.obtenerContactoConGrupos(contactoId)
         return repository.getContactoById(contactoId)

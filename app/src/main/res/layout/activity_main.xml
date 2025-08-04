@@ -9,7 +9,8 @@
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
@@ -18,6 +19,26 @@
             android:background="?attr/colorPrimary"
             app:title="Mis Contactos"
             app:titleTextColor="@android:color/white" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            app:boxBackgroundColor="@android:color/white"
+            app:boxStrokeWidth="0dp"
+            app:boxStrokeWidthFocused="0dp"
+            app:hintEnabled="false">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/editTextBusqueda"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:drawableStart="@drawable/ic_search"
+                android:drawablePadding="8dp"
+                android:hint="Buscar contactos..."
+                android:imeOptions="actionSearch"
+                android:inputType="text" />
+        </com.google.android.material.textfield.TextInputLayout>
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -31,7 +52,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Mensaje cuando no hay contactos -->
             <LinearLayout
                 android:id="@+id/textViewNoContactos"
                 android:layout_width="match_parent"
@@ -66,25 +86,40 @@
                     android:text="Presiona el botón + para agregar tu primer contacto"
                     android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="16sp" />
-
             </LinearLayout>
 
-            <!-- Lista de contactos -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recyclerViewContactos"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:padding="8dp"
                 android:clipToPadding="false"
+                android:padding="8dp"
                 tools:listitem="@layout/item_contacto" />
 
+            <TextView
+                android:id="@+id/textViewAvisoComoBorrarContactos"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="16dp"
+                android:padding="8dp"
+                android:text="Para borrar un contacto. Deslice izquierda o derecha."
+                android:textSize="16sp" />
         </LinearLayout>
-
     </androidx.core.widget.NestedScrollView>
 
-    <!-- Botón flotante para agregar contacto -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
     <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabAgregarContacto"
+        android:id="@+id/fabAgregar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"

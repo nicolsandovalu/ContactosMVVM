@@ -51,7 +51,6 @@
             android:textSize="12sp"
             android:textColor="@android:color/darker_gray"
             tools:text="juan.perez@email.com" />
-
     </LinearLayout>
 
     <View

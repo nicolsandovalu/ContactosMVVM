@@ -20,6 +20,7 @@ android {
     }
 
     buildFeatures {
+        dataBinding = true
         viewBinding = true
     }
 
@@ -81,6 +82,8 @@ dependencies {
 
     // Hilt
     implementation("com.google.dagger:hilt-android:2.48")
+
+    implementation("com.google.code.gson:gson:2.9.0")
 
 
 

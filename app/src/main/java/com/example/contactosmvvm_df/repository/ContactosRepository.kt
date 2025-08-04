@@ -1,5 +1,7 @@
 package com.example.contactosmvvm_df.repository
 
+import android.content.ContentResolver
+import android.provider.ContactsContract
 import androidx.lifecycle.LiveData
 import com.example.contactosmvvm_df.database.CategoriaDao
 import com.example.contactosmvvm_df.database.ContactoDao
@@ -23,62 +25,107 @@ class ContactosRepository(
     val grupos = grupoDao.obtenerGrupos()
 
     // --- CRUD Contactos ---
+
+    fun buscarContactos(query: String): LiveData<List<Contacto>> {
+        return contactoDao.buscarContactos("%$query%")
+    }
     suspend fun insertarContacto(contacto: Contacto): Long {
         return contactoDao.insertar(contacto)
     }
-    suspend fun actualizarContacto(contacto: Contacto) = contactoDao.actualizar(contacto)
-    suspend fun eliminarContacto(contacto: Contacto) = contactoDao.eliminar(contacto)
+    suspend fun actualizarContacto(contacto: Contacto) {
+        contactoDao.actualizar(contacto)
+    }
+    suspend fun eliminarContacto(contacto: Contacto) {
+        contactoDao.eliminar(contacto)
+    }
 
     // --- CRUD Categorías ---
-    suspend fun insertarCategoria(categoria: Categoria) = categoriaDao.insertar(categoria)
+    suspend fun insertarCategoria(categoria: Categoria) {
+        categoriaDao.insertar(categoria)
+    }
+
+    suspend fun obtenerContactosParaBackup(): List<Contacto> {
+        return contactoDao.getAllContactosForBackup()
+    }
+
+    suspend fun restaurarContactos(contacto: List<Contacto>) {
+        contactos.forEach { contacto ->
+            contactoDao.insertar(contacto)
+        }
+    }
+
+    fun getContactoById(contactoId: Int) : LiveData<Contacto> {
+        return contactoDao.obtenerContactoPorId(contactoId)
+    }
+
+    suspend fun importarDesdeDispositivo(contentResolver: ContentResolver) {
+        val nuevosContactos = mutableListOf<Contacto>()
+        val telefonosExistentes = contactoDao.getTodosComoLista().map { it.telefono }.toSet()
+
+        val projection = arrayOf(
+            ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+            ContactsContract.CommonDataKinds.Phone.NUMBER
+        )
+
+        val cursor = contentResolver.query(
+            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+            projection,
+            null,
+            null,
+            ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " ASC "
+        )
+
+        cursor?.use {
+            val nameIndex = it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+            val numberIndex = it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
+
+            while (it.moveToNext()) {
+                val nombre = it.getString(nameIndex)
+                val telefono = it.getString(numberIndex).replace("\\s".toRegex(), "") //limpiar espacios
+
+                // Evitar duplicados basados en el número de teléfono
+                if (telefono.isNotBlank() && !telefonosExistentes.contains(telefono)) {
+                    // Por defecto, se asigna a la categoría 1 (o la que se prefiera)
+                    nuevosContactos.add(Contacto(nombre = nombre, telefono = telefono, email = "", categoriaId = 1))
+                }
+            }
+        }
+
+        if (nuevosContactos.isNotEmpty()){
+            contactoDao.insertarVarios(nuevosContactos)
+        }
+    }
+
+
 
     // --- CRUD Grupos ---
-    suspend fun insertarGrupo(grupo: Grupo) = grupoDao.insertarGrupo(grupo)
-    suspend fun actualizarGrupo(grupo: Grupo) = grupoDao.actualizarGrupo(grupo)
-    suspend fun eliminarGrupo(grupo: Grupo) = grupoDao.eliminarGrupo(grupo)
+    suspend fun insertarGrupo(grupo: Grupo) {
+        grupoDao.insertarGrupo(grupo)
+    }
 
-    // --- Buscar contactos ---
-    fun buscarContactos(query: String) = contactoDao.buscarContactos("%$query%")
+    fun getGruposDeUnContacto(contactoId: Int): LiveData<ContactoConGrupos>{
+        return grupoDao.obtenerContactoConGrupos(contactoId)
+    }
+    suspend fun actualizarGrupo(contactoId: Int, nuevosGruposId: List<Int>){
+        grupoDao.eliminarTodasLasReferenciasDeContacto(contactoId)
 
-    // --- Relaciones Contacto-Grupo ---
+        nuevosGruposId.forEach { grupoId ->
+            grupoDao.insertarContactoGrupoCrossRef(ContactoGrupoCrossRef(contactoId, grupoId))
+        }
+    }
+
+    fun obtenerGrupoConContactos(grupoId: Int) : LiveData<GrupoConContactos> =
+        grupoDao.obtenerGrupoConContactos(grupoId)
+
     suspend fun asociarContactoAGrupo(crossRef: ContactoGrupoCrossRef) =
         grupoDao.insertarContactoGrupoCrossRef(crossRef)
 
     suspend fun removerContactoDeGrupo(crossRef: ContactoGrupoCrossRef) =
         grupoDao.eliminarContactoGrupoCrossRef(crossRef)
 
-    // --- Consultas de relaciones ---
-    fun obtenerGrupoConContactos(grupoId: Int): LiveData<GrupoConContactos> =
-        grupoDao.obtenerGrupoConContactos(grupoId)
-
-    fun obtenerContactoConGrupos(contactoId: Int): LiveData<ContactoConGrupos> =
-        grupoDao.obtenerContactoConGrupos(contactoId)
-
-    fun obtenerTodosLosGruposConContactos(): LiveData<List<GrupoConContactos>> =
-        grupoDao.obtenerTodosLosGruposConContactos()
-
     suspend fun contarContactosEnGrupo(grupoId: Int): Int =
         grupoDao.contarContactosEnGrupo(grupoId)
 
-    // --- Funciones para AgregarContactoViewModel ---
-    // Se corrige para que devuelva LiveData<Contacto> en lugar de LiveData<List<Contacto>>
-    fun getContactoById(contactoId: Int): LiveData<Contacto> {
-        return contactoDao.obtenerContactoPorId(contactoId)
-    }
-
-    suspend fun actualizarGruposDeContacto(contactoId: Int, grupoIds: List<Int>) {
-        // Elimina las relaciones existentes
-        val referenciasAEliminar = grupoDao.obtenerGruposDeContacto(contactoId).value?.map {
-            ContactoGrupoCrossRef(contactoId, it.id)
-        }
-        referenciasAEliminar?.forEach {
-            grupoDao.eliminarContactoGrupoCrossRef(it)
-        }
-
-        // Crea e inserta nuevas relaciones
-        grupoIds.forEach { grupoId ->
-            val nuevaReferencia = ContactoGrupoCrossRef(contactoId, grupoId)
-            grupoDao.insertarContactoGrupoCrossRef(nuevaReferencia)
-        }
-    }
+    fun obtenerTodosLosGruposConContactos(): LiveData<List<GrupoConContactos>> =
+        grupoDao.obtenerTodosLosGruposConContactos()
 }

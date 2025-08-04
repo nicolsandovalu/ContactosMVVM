@@ -1,29 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
-
     <item
-        android:id="@+id/action_search"
-        android:icon="@android:drawable/ic_menu_search"
-        android:title="Buscar"
-        app:actionViewClass="androidx.appcompat.widget.SearchView"
-        app:showAsAction="ifRoom|collapseActionView" />
-
+        android:id="@+id/action_backup"
+        android:icon="@drawable/ic_backup"
+        android:title="Crear copia de seguridad"
+        app:showAsAction="ifRoom" />
     <item
-        android:id="@+id/action_grupos"
-        android:icon="@drawable/ic_group"
-        android:title="Grupos"
+        android:id="@+id/action_restore"
+        android:icon="@drawable/ic_restore"
+        android:title="Restaurar copia"
         app:showAsAction="ifRoom" />
 
     <item
-        android:id="@+id/action_exportar"
-        android:icon="@drawable/ic_export"
+        android:id="@+id/action_export_vcard"
         android:title="Exportar"
         app:showAsAction="never" />
 
     <item
-        android:id="@+id/action_importar"
-        android:icon="@drawable/ic_import"
-        android:title="Importar"
+        android:id="@+id/action_import_device"
+        android:title="Importar desde dispositivo"
         app:showAsAction="never" />
 </menu>

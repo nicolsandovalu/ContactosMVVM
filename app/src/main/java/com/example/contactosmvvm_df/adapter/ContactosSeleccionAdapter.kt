@@ -109,10 +109,6 @@ class ContactosSeleccionAdapter(
         .filter { !it.isSelected && it.estaEnGrupo }
         .map { it.contacto }
 
-    fun obtenerTodosLosSeleccionados(): List<Contacto> = estadosSeleccion
-        .filter { it.isSelected || it.estaEnGrupo }
-        .map { it.contacto }
-
     fun limpiarSelecciones() {
         estadosSeleccion.forEach { it.isSelected = false }
         notifyDataSetChanged()

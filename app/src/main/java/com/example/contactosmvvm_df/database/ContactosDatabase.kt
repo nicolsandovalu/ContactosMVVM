@@ -4,12 +4,13 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.contactosmvvm_df.model.Categoria
 import com.example.contactosmvvm_df.model.Contacto
 import com.example.contactosmvvm_df.model.ContactoGrupoCrossRef
 import com.example.contactosmvvm_df.model.Grupo
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 @Database(
     entities = [
@@ -26,27 +27,49 @@ abstract class ContactosDatabase : RoomDatabase() {
     abstract fun categoriaDao(): CategoriaDao
     abstract fun grupoDao(): GrupoDao
 
+    private class ContactosDatabaseCallback(
+        private val scope: CoroutineScope
+    ) : RoomDatabase.Callback() {
+
+        override fun onCreate(db: SupportSQLiteDatabase) {
+            super.onCreate(db)
+            INSTANCE?.let { database ->
+                scope.launch {
+                    populateDatabase(database.categoriaDao())
+                    populateDbGroups(database.grupoDao())
+                }
+            }
+        }
+
+        suspend fun populateDatabase(categoriaDao: CategoriaDao) {
+            categoriaDao.insertar(Categoria(nombre = "Familia"))
+            categoriaDao.insertar(Categoria(nombre = "Trabajo"))
+            categoriaDao.insertar(Categoria(nombre = "Amigos"))
+            categoriaDao.insertar(Categoria(nombre = "General"))
+        }
+
+        suspend fun populateDbGroups(grupoDao: GrupoDao) {
+            grupoDao.insertarGrupo(Grupo(nombre = "Grupo 1"))
+            grupoDao.insertarGrupo(Grupo(nombre = "Grupo 2"))
+            grupoDao.insertarGrupo(Grupo(nombre = "Grupo 3"))
+        }
+    }
+
     companion object {
         @Volatile
         private var INSTANCE: ContactosDatabase? = null
 
-        // Migración de ejemplo (si necesitas cambiar la versión)
-        private val MIGRATION_1_2 = object : Migration(1, 2) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                // Aquí irían las operaciones SQL para migrar de versión 1 a 2
-            }
-        }
-
-        fun getDatabase(context: Context): ContactosDatabase {
+        /**
+         * Obtiene la instancia única de la base de datos (Singleton).
+         */
+        fun getDatabase(context: Context, coroutineScope: CoroutineScope): ContactosDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     ContactosDatabase::class.java,
                     "contactos_database"
                 )
-                    //.addMigrations(MIGRATION_1_2)  // Descomenta cuando tengas migraciones
-                    .fallbackToDestructiveMigrationOnDowngrade()  // Solo para downgrades
-                    .fallbackToDestructiveMigration()  // Para migraciones no manejadas (elimina datos)
+                    .addCallback(ContactosDatabaseCallback(coroutineScope))
                     .build()
                 INSTANCE = instance
                 instance

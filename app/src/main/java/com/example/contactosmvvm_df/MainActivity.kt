@@ -1,226 +1,311 @@
 package com.example.contactosmvvm_df
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.contactosmvvm_df.adapter.ContactosAdapter
+import com.example.contactosmvvm_df.adapter.OnContactActionListener
+import com.example.contactosmvvm_df.database.ContactosDatabase
 import com.example.contactosmvvm_df.databinding.ActivityMainBinding
 import com.example.contactosmvvm_df.model.Contacto
+import com.example.contactosmvvm_df.repository.ContactosRepository
+import com.example.contactosmvvm_df.utils.VCardUtils
 import com.example.contactosmvvm_df.viewmodel.ContactosViewModel
+import com.example.contactosmvvm_df.viewmodel.ContactosViewModelFactory
+import com.example.contactosmvvm_df.viewmodel.EstadoImportacion
+import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.coroutineScope
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), OnContactActionListener {
 
     private lateinit var binding: ActivityMainBinding
-    private lateinit var viewModel: ContactosViewModel
-    private lateinit var contactosAdapter: ContactosAdapter
+    private lateinit var adapter: ContactosAdapter
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+    private val viewModel: ContactosViewModel by viewModels {
 
-        configurarViewModel()
-        configurarToolbar()
-        configurarRecyclerView()
-        configurarFAB()
-        observarDatos()
-    }
+        val database = ContactosDatabase.getDatabase(context = applicationContext, coroutineScope = lifecycleScope)
+        val repository = ContactosRepository(database.contactoDao(), database.categoriaDao(), database.grupoDao())
 
-    private fun configurarViewModel() {
-        viewModel = ViewModelProvider(this)[ContactosViewModel::class.java]
-    }
+        private val viewModel: ContactosViewModel by viewModels {
 
-    private fun configurarToolbar() {
-        setSupportActionBar(binding.toolbar)
-        supportActionBar?.title = "Mis Contactos"
-    }
-
-    private fun configurarRecyclerView() {
-        contactosAdapter = ContactosAdapter(emptyList()) { contacto ->
-            // Manejar click en contacto
-            mostrarOpcionesContacto(contacto)
+            val database = ContactosDatabase.getDatabase(context = applicationContext,
+                coroutineScope = lifecycleScope)
+            val repository = ContactosRepository(database.contactoDao(), database.categoriaDao(), database.grupoDao())
+            ContactosViewModelFactory(repository)
         }
 
-        binding.recyclerViewContactos.apply {
-            adapter = contactosAdapter
-            layoutManager = LinearLayoutManager(this@MainActivity)
-        }
-    }
+        private var numeroParaLlamar: String? = null
+        private val requestCallPermissionLauncher =
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+                isGranted: Boolean ->
+                if (isGranted) {
 
-    private fun configurarFAB() {
-        binding.fabAgregarContacto.setOnClickListener {
-            abrirAgregarContacto()
-        }
-    }
-
-    private fun observarDatos() {
-        // Observar lista de contactos
-        viewModel.contactos.observe(this) { contactos ->
-            contactos?.let {
-                contactosAdapter.actualizarLista(it)
-
-                // Mostrar mensaje si no hay contactos
-                if (it.isEmpty()) {
-                    binding.textViewNoContactos.visibility = android.view.View.VISIBLE
-                    binding.recyclerViewContactos.visibility = android.view.View.GONE
+                    numeroParaLlamar?.let {realizarLlamada(it)}
                 } else {
-                    binding.textViewNoContactos.visibility = android.view.View.GONE
-                    binding.recyclerViewContactos.visibility = android.view.View.VISIBLE
+                    Toast.makeText(this, "Permiso de llamada denegado", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+        private val crearBackupLauncher = registerForActivityResult
+        (ActivityResultContracts.CreateDocument("application/json")) { uri ->
+            uri?.let {
+
+                val contactosRestaurados = BackupUtils.restaurarDesdeBackup(this, it)
+                ir (contactosRestaurados != null) {
+                    Toast.makeText(this, "${contactosRestaurados.size} contactos restaurados",
+                        Toast.LENGTH_SHORT).show()
                 }
             }
         }
 
-        // Observar resultados de búsqueda si hay texto en el SearchView
-        viewModel.contactosFiltrados.observe(this) { contactosFiltrados ->
-            contactosFiltrados?.let {
-                contactosAdapter.actualizarLista(it)
-            }
-        }
-    }
-
-    private fun mostrarOpcionesContacto(contacto: Contacto) {
-        val opciones = arrayOf("Ver detalles", "Editar", "Eliminar", "Compartir")
-
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle(contacto.nombre)
-            .setItems(opciones) { _, which ->
-                when (which) {
-                    0 -> verDetallesContacto(contacto)
-                    1 -> editarContacto(contacto)
-                    2 -> confirmarEliminarContacto(contacto)
-                    3 -> compartirContacto(contacto)
-                }
-            }
-            .setNegativeButton("Cancelar", null)
-            .show()
-    }
-
-    private fun verDetallesContacto(contacto: Contacto) {
-        val mensaje = """
-            Nombre: ${contacto.nombre}
-            Teléfono: ${contacto.telefono}
-            Email: ${contacto.email}
-        """.trimIndent()
-
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("Detalles del Contacto")
-            .setMessage(mensaje)
-            .setPositiveButton("OK", null)
-            .show()
-    }
-
-    private fun editarContacto(contacto: Contacto) {
-        val intent = Intent(this, AgregarContactoActivity::class.java).apply {
-            putExtra("CONTACTO_ID", contacto.id)
-            putExtra("CONTACTO_NOMBRE", contacto.nombre)
-            putExtra("CONTACTO_TELEFONO", contacto.telefono)
-            putExtra("CONTACTO_EMAIL", contacto.email)
-            putExtra("MODO_EDICION", true)
-        }
-        startActivity(intent)
-    }
-
-    private fun confirmarEliminarContacto(contacto: Contacto) {
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("Eliminar Contacto")
-            .setMessage("¿Estás seguro de que quieres eliminar a ${contacto.nombre}?")
-            .setPositiveButton("Eliminar") { _, _ ->
-                viewModel.eliminarContacto(contacto)
-                Toast.makeText(this, "${contacto.nombre} eliminado", Toast.LENGTH_SHORT).show()
-            }
-            .setNegativeButton("Cancelar", null)
-            .show()
-    }
-
-    private fun compartirContacto(contacto: Contacto) {
-        val compartirTexto = """
-            Contacto: ${contacto.nombre}
-            Teléfono: ${contacto.telefono}
-            Email: ${contacto.email}
-        """.trimIndent()
-
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, compartirTexto)
-            putExtra(Intent.EXTRA_SUBJECT, "Contacto: ${contacto.nombre}")
-        }
-
-        startActivity(Intent.createChooser(intent, "Compartir contacto"))
-    }
-
-    private fun abrirAgregarContacto() {
-        val intent = Intent(this, AgregarContactoActivity::class.java)
-        startActivity(intent)
-    }
-
-    private fun abrirGestionarGrupos() {
-        // TODO: Implementar gestión de grupos
-        Toast.makeText(this, "Gestión de grupos - Por implementar", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun exportarContactos() {
-        viewModel.contactos.value?.let { contactos ->
-            if (contactos.isNotEmpty()) {
-                // Aquí usarías BackupUtils
-                Toast.makeText(this, "Exportando ${contactos.size} contactos...", Toast.LENGTH_SHORT).show()
-                // BackupUtils.exportar(this, contactos)
-            } else {
+        private val vcardExportLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("text/vcard")) {
+            uri -> uri?.let {
+                val contactos = viewModel.getContactosParaExportar()
+            if (contactos.isNullOrEmpty()) {
                 Toast.makeText(this, "No hay contactos para exportar", Toast.LENGTH_SHORT).show()
+                return@registerForActivityResult
+            }
+
+            try {
+                val vcardString = VCardUtils.exportToVCard(contactos)
+                contentResolver.openOutputStream(it)?. use { outputStream ->
+                    outputStream.write(vcardString.toByteArray())
+                }
+
+                Toast.makeText(this, "Contactos exportados correctamente", Toast.LENGTH_LONG).show()
+            } catch (e: Exception) {
+                Toast.makeText(this, "Error al exportar: ${e.message}", Toast.LENGTH_SHORT).show()
+                Log.e("MainActivity", "Error exportando a VCard", e)
+                }
             }
         }
-    }
 
-    private fun importarContactos() {
-        // TODO: Implementar importación
-        Toast.makeText(this, "Importar contactos - Por implementar", Toast.LENGTH_SHORT).show()
-    }
+        /**Launcher para solicitar el permiso de lectura de contactos */
+        private val requestPermissionLauncher =
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) {isGranted: Boolean ->
+                if (isGranted) {
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.menu_main, menu)
-
-        // Configurar SearchView
-        val searchItem = menu.findItem(R.id.action_search)
-        val searchView = searchItem.actionView as SearchView
-
-        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String?): Boolean {
-                return false
+                    viewModel.importarContactosDelDispositivo(contentResolver)
+                } else {
+                    Toast.makeText(this, "Permiso necesario para importar contactos")
+                }
             }
 
-            override fun onQueryTextChange(newText: String?): Boolean {
-                viewModel.buscar(newText ?: "")
-                return true
-            }
-        })
+        override fun onCreate(savedInstanceState: Bundle?) {
+            super.onCreate(savedInstanceState)
+            binding = ActivityMainBinding.inflate(layoutInflater)
+            setContentView(binding.root)
+            setSupportActionBar(binding.toolbar)
 
-        return true
-    }
+            // Observar el estado de la importacion
+            viewModel.estadoImportacion.observe(this) { estado ->
+                when (estado) {
+                    EstadoImportacion.CARGANDO -> {
+                        binding.progressBar.visibility = View.VISIBLE
+                    }
+                    EstadoImportacion.EXITO -> {
+                        binding.progressBar.visibility = View.GONE
+                        Toast.makeText(this, "Contactos importados.", Toast.LENGTH_SHORT).show()
+                        viewModel.resetearEstadoImportacion()
+                    }
+                    EstadoImportacion.ERROR -> {
+                        binding.progressBar.visibility = View.GONE
+                        Toast.makeText(this, "Error al importar.", Toast.LENGTH_SHORT).show()
+                        viewModel.resetearEstadoImportacion()
+                    }
+                    else -> { // VACIO
+                        binding.progressBar.visibility = View.GONE
+                    }
+                }
+            }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.action_search -> true
-            R.id.action_grupos -> {
-                abrirGestionarGrupos()
-                true
-            }
-            R.id.action_exportar -> {
-                exportarContactos()
-                true
-            }
-            R.id.action_importar -> {
-                importarContactos()
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
+            setupRecyclerView()
+            setupListeners()
+            observeViewModel()
         }
+
+
+        /**
+         * Configura el RecyclerView, su adaptador y el gesto de deslizar para eliminar.
+         */
+        private fun setupRecyclerView() {
+            adapter = ContactosAdapter(this)
+            binding.recyclerViewContactos.layoutManager = LinearLayoutManager(this)
+            binding.recyclerViewContactos.adapter = adapter
+
+            // Configura el helper para el gesto de "swipe-to-delete"
+            val itemTouchHelperCallback = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
+                override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
+                    return false // No se usa para mover items
+                }
+
+                override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                    val position = viewHolder.adapterPosition
+                    val contactoEliminado = adapter.currentList[position]
+                    viewModel.eliminarContacto(contactoEliminado)
+
+                    // Muestra un Snackbar con opción de deshacer
+                    Snackbar.make(binding.root, "Contacto eliminado", Snackbar.LENGTH_LONG).show()
+                    /*.setAction("DESHACER") {
+                        // Si el usuario deshace, volvemos a insertar el contacto.
+                        // Esta funcionalidad requeriría un método en el ViewModel.
+                    }*/
+                }
+            }
+            ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(binding.recyclerViewContactos)
+        }
+
+        // Implementación de los métodos de la interfaz
+        override fun onCallClick(telefono: String) {
+            numeroParaLlamar = telefono
+            when {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.CALL_PHONE
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    // Permiso ya concedido.
+                    realizarLlamada(telefono)
+                }
+                else -> {
+                    // Solicitar permiso.
+                    requestCallPermissionLauncher.launch(Manifest.permission.CALL_PHONE)
+                }
+            }
+        }
+
+        override fun onMessageClick(telefono: String) {
+            val intent = Intent(Intent.ACTION_SENDTO).apply {
+                data = Uri.parse("smsto:$telefono")
+            }
+            if (intent.resolveActivity(packageManager) != null) {
+                startActivity(intent)
+            } else {
+                Toast.makeText(this, "No se encontró app para enviar SMS.", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        override fun onItemClick(contacto: Contacto) {
+            // La acción de clic en toda la fila sigue funcionando para editar
+            val intent = Intent(this, AgregarContactoActivity::class.java)
+            intent.putExtra("EXTRA_CONTACTO_ID", contacto.id)
+            startActivity(intent)
+        }
+
+        private fun realizarLlamada(telefono: String) {
+            try {
+                val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:$telefono"))
+                startActivity(intent)
+            } catch (e: SecurityException) {
+                Toast.makeText(this, "Error de seguridad al intentar llamar.", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        /**
+         * Configura los listeners para la búsqueda y el botón de agregar.
+         */
+        private fun setupListeners() {
+            binding.editTextBusqueda.addTextChangedListener { text ->
+                viewModel.buscarContacto(text.toString())
+            }
+
+            binding.fabAgregar.setOnClickListener {
+                startActivity(Intent(this, AgregarContactoActivity::class.java))
+            }
+        }
+
+        /**
+         * Observa los LiveData del ViewModel para actualizar la UI.
+         */
+        private fun observeViewModel() {
+            viewModel.contactos.observe(this) { contactos ->
+                // Muestra un estado de carga o vacío si es necesario
+                // binding.progressBar.visibility = View.GONE
+                // binding.emptyView.visibility = if (contactos.isEmpty()) View.VISIBLE else View.GONE
+                adapter.submitList(contactos)
+            }
+        }
+
+        override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+            menuInflater.inflate(R.menu.main_menu, menu)
+            return true
+        }
+
+        override fun onOptionsItemSelected(item: MenuItem): Boolean {
+            return when (item.itemId) {
+                R.id.action_backup -> {
+                    crearBackupLauncher.launch("contactos_backup.json")
+                    true
+                }
+                R.id.action_restore -> {
+                    restaurarBackupLauncher.launch("application/json")
+                    true
+                }
+                R.id.action_export_vcard -> {
+                    exportarContactosAVCard()
+                    true
+                }
+                R.id.action_import_device -> {
+                    iniciarImportacionDeContactos()
+                    true
+                }
+                else -> super.onOptionsItemSelected(item)
+            }
+        }
+
+        private fun exportarContactosAVCard() {
+            val nombreArchivo = "contactos_backup.vcf"
+            vcardExportLauncher.launch(nombreArchivo)
+        }
+
+        /**Función que gestiona la solicitud de permiso e inicia la importación */
+        private fun iniciarImportacionDeContactos() {
+            when {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.READ_CONTACTS
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    // El permiso ya está concedido.
+                    viewModel.importarContactosDelDispositivo(contentResolver)
+                }
+                else -> {
+                    // El permiso no está concedido, lo solicitamos.
+                    requestPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
+                }
+            }
+        }
+
+        /**
+         * Función de utilidad para abrir una URL en el navegador.
+         */
+        private fun openUrl(url: String) {
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                startActivity(intent)
+            } catch (e: Exception) {
+                Toast.makeText(this, "No se puede abrir el enlace.", Toast.LENGTH_SHORT).show()
+            }
+        }
+
     }
+
 }
